@@ -1,0 +1,2 @@
+{"session_id": "1337", "utterances": ["This is the first utterance.", "This is the second."], "speaker_ids": ["speaker0", "speaker1"], "labels": ["label0", "label1"]}
+{"session_id": "5150", "utterances": ["Van Halen", "Police code for crazy one run amok"], "speaker_ids": ["speaker1", "speaker0"], "labels": ["label1", "label0"]}
