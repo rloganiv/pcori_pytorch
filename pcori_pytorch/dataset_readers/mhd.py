@@ -28,7 +28,7 @@ class MHDDatasetReader(DatasetReader):
     Reads a JSON-lines file containing sessions from the MHD study. Each line is expected to have
     the following format:
 
-        {'session_id': '...', 'utterances': ['...'], 'speaker_ids': ['...'], 'labels': ['...']}
+        {'session_id': '...', 'utterances': ['...'], 'speakers': ['...'], 'labels': ['...']}
 
 
     The output of ``read`` is a list of ``Instance``s with the fields:
@@ -66,15 +66,15 @@ class MHDDatasetReader(DatasetReader):
                 session_json = json.loads(line)
                 session_id = session_json['session_id']
                 utterances = session_json['utterances']
-                speaker_ids = session_json['speaker_ids']
+                speakers = session_json['speakers']
                 labels = session_json['labels']
-                yield self.text_to_instance(session_id, utterances, speaker_ids, labels)
+                yield self.text_to_instance(session_id, utterances, speakers, labels)
 
     @overrides
     def text_to_instance(self,
                          session_id: str,
                          utterances: List[List[str]],
-                         speaker_ids: List[str],
+                         speakers: List[str],
                          labels: List[str] = None) -> Instance: # type: ignore
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
@@ -86,15 +86,18 @@ class MHDDatasetReader(DatasetReader):
         # Speaker ids however are just a ``TextField`` since there is only one per utterance.
         # The tokens are constructed manually instead of fed into the tokenizer so that the text
         # isn't altered.
-        tokenized_speaker_ids = [Token(speaker_id) for speaker_id in speaker_ids]
-        fields['speaker_ids'] = TextField(tokenized_speaker_ids, self._token_indexers)
+        # TODO: Since self._token_indexers is used to index both the words and speaker ids, the
+        # speaker id's will be part of the Vocabulary - this may cause issues if the labels appear
+        # in the text. Perhaps use a seperate indexer?
+        tokenized_speakers = [Token(speaker) for speaker in speakers]
+        fields['speakers'] = TextField(tokenized_speakers, self._token_indexers)
         if labels is not None:
             fields['labels'] = SequenceLabelField(labels, sequence)
         # Add metadata to help with debugging / visualization.
         fields['metadata'] = MetadataField({
             'session_id': session_id,
             'utterances_text': [[x.text for x in utterance] for utterance in tokenized_utterances],
-            'speaker_ids_text': [x.text for x in tokenized_speaker_ids]
+            'speakers_text': [x.text for x in tokenized_speakers]
         })
         return Instance(fields)
 
