@@ -1,1 +1,1 @@
-from pcori_pytorch.predictors.crf_session_tagger_predictor import CRFSessionTaggerPredictor
+from pcori_pytorch.predictors.hierarchical_crf_predictor import HierarchicalCRFPredictor

@@ -29,10 +29,10 @@ import allennlp.nn.util as util
 from pcori_pytorch.training import FuckingAccuracy
 
 
-@Model.register('crf_session_tagger')
-class CRFSessionTagger(Model):
+@Model.register('hierarchical_crf')
+class HierarchicalCRF(Model):
     """
-    The ``CRFSessionTagger`` encodes sequences of sequences of text and then uses a conditional
+    The ``HierarchicalCRF`` encodes sequences of sequences of text and then uses a conditional
     random field (CRF) model to predict a tag for each inner sequence. Representations of each of
     the inner sequence are obtained with a ``Seq2VecEncoder``. These vectors are subsequently fed
     into a ``Seq2SeqEncoder`` to encode the outer sequence.
@@ -71,7 +71,7 @@ class CRFSessionTagger(Model):
                  dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
-        super(CRFSessionTagger, self).__init__(vocab, regularizer)
+        super(HierarchicalCRF, self).__init__(vocab, regularizer)
 
         self.label_namespace = label_namespace
         self.text_field_embedder = text_field_embedder
@@ -193,7 +193,7 @@ class CRFSessionTagger(Model):
         return {metric_name: metric.get_metric(reset) for metric_name, metric in self.metrics.items()}
 
     @classmethod
-    def from_params(cls, vocab: Vocabulary, params: Params) -> 'CRFSessionTagger':
+    def from_params(cls, vocab: Vocabulary, params: Params) -> 'HierarchicalCRF':
         embedder_params = params.pop('text_field_embedder')
         text_field_embedder = TextFieldEmbedder.from_params(vocab, embedder_params)
         inner_encoder = Seq2VecEncoder.from_params(params.pop('inner_encoder'))

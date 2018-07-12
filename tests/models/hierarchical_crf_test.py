@@ -2,9 +2,9 @@
 from allennlp.common.testing import ModelTestCase
 
 
-class CRFSessionTaggerTest(ModelTestCase):
+class HierarchicalCRFTest(ModelTestCase):
     def setUp(self):
-        super(CRFSessionTaggerTest, self).setUp()
+        super(HierarchicalCRFTest, self).setUp()
         self.set_up_model('tests/fixtures/experiment.json',
                           'tests/fixtures/test_sessions.jsonl')
 

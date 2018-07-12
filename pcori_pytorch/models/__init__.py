@@ -1,1 +1,1 @@
-from pcori_pytorch.models.crf_session_tagger import CRFSessionTagger
+from pcori_pytorch.models.hierarchical_crf import HierarchicalCRF

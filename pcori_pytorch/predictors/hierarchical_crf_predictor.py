@@ -7,8 +7,8 @@ from allennlp.data import Instance
 from allennlp.service.predictors.predictor import Predictor
 
 
-@Predictor.register('crf_session_tagger')
-class CRFSessionTaggerPredictor(Predictor):
+@Predictor.register('hierarchical_crf_predictor')
+class HierarchicalCRFPredictor(Predictor):
     @overrides
     def _json_to_instance(self, json_dict: JsonDict) -> Tuple[Instance, JsonDict]:
         session_id = json_dict['session_id']
