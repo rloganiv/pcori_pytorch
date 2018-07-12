@@ -17,6 +17,7 @@ from torch.nn.modules.linear import Linear
 
 from allennlp.common import Params
 from allennlp.common.checks import check_dimensions_match
+from allennlp.common.util import pad_sequence_to_length
 from allennlp.data import Vocabulary
 from allennlp.modules import ConditionalRandomField, Seq2SeqEncoder, Seq2VecEncoder, \
         TimeDistributed, TextFieldEmbedder
@@ -24,7 +25,8 @@ from allennlp.modules.conditional_random_field import allowed_transitions
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 import allennlp.nn.util as util
-from allennlp.training.metrics import SpanBasedF1Measure, BooleanAccuracy
+
+from pcori_pytorch.training import FuckingAccuracy
 
 
 @Model.register('crf_session_tagger')
@@ -93,10 +95,8 @@ class CRFSessionTagger(Model):
             self.num_tags, constraints,
             include_start_end_transitions=include_start_end_transitions)
 
-        # TODO: Figure out how to handle in non-BIO case...
-        # self.span_metric = SpanBasedF1Measure(vocab,
-        #                                       tag_namespace=label_namespace,
-        #                                       label_encoding=constraint_type or 'BIO')
+        self.metrics = {"accuracy": FuckingAccuracy()}
+
 
         check_dimensions_match(text_field_embedder.get_output_dim(),
                                inner_encoder.get_input_dim(),
@@ -175,19 +175,22 @@ class CRFSessionTagger(Model):
             log_likelihood = self.crf(logits, labels, outer_mask)
             output['loss'] = -log_likelihood
 
-            # Represent viterbi tags as "class probabilities" that can be fed to the `span_metric`
-            # TODO: Make this work in non-BIO case...
-            # class_probabilities = logits * 0.
-            # for i, instance_labels in enumerate(predicted_labels):
-            #     for j, label_id in enumerate(instance_labels):
-            #         class_probabilities[i, j, label_id] = 1
-            # self.span_metric(class_probabilities, labels, outer_mask)
+            # Stupid trick - need to convert predicted labels back to a torch.Tensor to compute
+            # accuracy.
+            predicted_labels = [pad_sequence_to_length(x, n_utterances) for x in predicted_labels]
+            predicted_labels = torch.LongTensor(predicted_labels)
+            for metric in self.metrics.values():
+                metric(predicted_labels, labels, outer_mask)
 
         # Add metadata to output
         if metadata is not None:
             output['metadata'] = metadata
 
         return output
+
+    @overrides
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        return {metric_name: metric.get_metric(reset) for metric_name, metric in self.metrics.items()}
 
     @classmethod
     def from_params(cls, vocab: Vocabulary, params: Params) -> 'CRFSessionTagger':
