@@ -7,43 +7,48 @@
         "token_indexers": {
             "tokens": {
                 "type": "single_id",
-                "lowercase_tokens": true
+                "lowercase_tokens": false
             }
         }
     },
     "train_data_path": "/home/rlogan/projects/pcori/preprocessing/data/clean.train.jsonl",
     "validation_data_path": "/home/rlogan/projects/pcori/preprocessing/data/clean.test.jsonl",
     "model": {
-        "type": "crf_session_tagger",
-        "dropout": 0.5,
+        "type": "hierarchical_crf",
+        "dropout": 0.7,
         "text_field_embedder": {
             "tokens": {
                 "type": "embedding",
-                "embedding_dim": 200,
+                "embedding_dim": 64,
                 "trainable": true
             }
         },
         "inner_encoder": {
             "type": "lstm",
-            "input_size": 200,
-            "hidden_size": 128,
-            "dropout": 0.50,
+            "input_size": 64,
+            "hidden_size": 32,
+            "dropout": 0.7,
             "num_layers": 2,
             "bidirectional": true
         },
         "outer_encoder": {
             "type": "lstm",
-            "input_size": 256,
-            "hidden_size":64,
-            "dropout": 0.5,
+            "input_size": 64,
+            "hidden_size":32,
+            "dropout": 0.7,
             "num_layers": 1,
             "bidirectional": true
         }
     },
-    "iterator": {"type": "basic", "batch_size": 2},
+    "iterator": {"type": "basic", "batch_size": 5},
     "trainer": {
-        "optimizer": "adam",
+        "optimizer": {
+            "type": "sgd",
+            "lr": 0.0001
+        },
         "num_epochs": 50,
-        "cuda_device": 0
+        "cuda_device": 0,
+        "validation_metric": "+accuracy",
+        "patience": 10
     }
 }
