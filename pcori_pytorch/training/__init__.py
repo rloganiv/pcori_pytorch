@@ -1,1 +1,1 @@
-from pcori_pytorch.training.fucking_accuracy import FuckingAccuracy 
+from pcori_pytorch.training.fucking_accuracy import FuckingAccuracy

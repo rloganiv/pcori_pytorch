@@ -5,7 +5,7 @@ from allennlp.common.testing import ModelTestCase
 class HierarchicalCRFTest(ModelTestCase):
     def setUp(self):
         super(HierarchicalCRFTest, self).setUp()
-        self.set_up_model('tests/fixtures/experiment.json',
+        self.set_up_model('tests/fixtures/hierarchical_crf_experiment.json',
                           'tests/fixtures/test_sessions.jsonl')
 
     def test_model_can_save_and_load(self):

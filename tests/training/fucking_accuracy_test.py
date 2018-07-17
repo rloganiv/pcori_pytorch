@@ -8,6 +8,7 @@ from pcori_pytorch.training import FuckingAccuracy
 
 
 class TestFuckingAccuracy(AllenNlpTestCase):
+
     def test_output(self):
         fucking_accuracy = FuckingAccuracy()
         true = torch.LongTensor([[1, 2, 3], [4, 0, 0]])
@@ -20,3 +21,4 @@ class TestFuckingAccuracy(AllenNlpTestCase):
         # Check that resetting worked
         with pytest.raises(ZeroDivisionError):
             value = fucking_accuracy.get_metric()
+

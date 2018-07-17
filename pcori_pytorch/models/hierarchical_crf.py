@@ -116,7 +116,7 @@ class HierarchicalCRF(Model):
                 metadata: List[Dict[str, Any]] = None) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
-        Note: Currently ignores speaker data...
+        Note: Currently ignores speaker data.
 
         Parameters
         ----------
@@ -128,7 +128,7 @@ class HierarchicalCRF(Model):
             ``TextFieldEmbedder``.
         labels: ``torch.LongTensor``, optional (default = ``None``)
             A torch tensor containing the observed class labels.
-        metadata : List[Dict[str, Any]], optional (default = ``None``)
+        metadata : ``List[Dict[str, Any]]``, optional (default = ``None``)
             Metadata about the inputs (e.g. session_id, the original sequences of words, etc.).
 
         Returns
@@ -151,6 +151,7 @@ class HierarchicalCRF(Model):
         embedded_utterances = self.text_field_embedder(utterances)
         if self.dropout:
             embedded_utterances = self.dropout(embedded_utterances)
+        # TODO: Replace with TimeDistributed
         embedded_utterances = embedded_utterances.view(batch_size * n_utterances, n_words, -1)
         inner_mask = inner_mask.view(batch_size * n_utterances, n_words)
         inner_encoded = self.inner_encoder(embedded_utterances, inner_mask)

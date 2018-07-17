@@ -2,7 +2,7 @@
 from allennlp.common.testing import AllenNlpTestCase
 from allennlp.common.util import ensure_list
 
-from pcori_pytorch.dataset_readers import MHDDatasetReader
+from pcori_pytorch.data.dataset_readers import MHDDatasetReader
 
 
 class TestMHDDatasetReader(AllenNlpTestCase):

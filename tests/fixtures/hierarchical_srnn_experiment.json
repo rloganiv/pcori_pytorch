@@ -1,0 +1,59 @@
+{
+    "dataset_reader": {
+        "type": "segmented_mhd"
+    },
+    "train_data_path": "tests/fixtures/test_segments.jsonl",
+    "validation_data_path": "tests/fixtures/test_segments.jsonl",
+    "model": {
+        "type": "hierarchical_srnn",
+        "max_length": 4,
+        "text_field_embedder": {
+            "tokens": {
+                "type": "embedding",
+                "embedding_dim": 2,
+                "trainable": false
+            }
+        },
+        "duration_embedder": {
+            "num_embeddings": 100,
+            "embedding_dim": 2
+        },
+        "label_embedder": {
+            "vocab_namespace": "labels",
+            "embedding_dim": 2
+        },
+        "inner_encoder": {
+            "type": "gru",
+            "input_size": 2,
+            "hidden_size": 4,
+            "num_layers": 2,
+            "dropout": 0.5,
+            "bidirectional": true
+        },
+        "outer_encoder": {
+            "type": "gru",
+            "input_size": 8,
+            "hidden_size": 8,
+            "num_layers": 2,
+            "dropout": 0.5,
+            "bidirectional": true
+        },
+        "segment_embedder": {
+            "input_size": 16,
+            "hidden_size": 4,
+            "max_length": 4
+        },
+        "weight_function": {
+            "label_embedding_size": 2,
+            "duration_embedding_size": 2,
+            "segment_embedding_size": 8,
+            "hidden_size": 8
+        }
+    },
+    "iterator": {"type": "basic", "batch_size": 32},
+    "trainer": {
+        "optimizer": "adam",
+        "num_epochs": 5,
+        "cuda_device": -1
+    }
+}

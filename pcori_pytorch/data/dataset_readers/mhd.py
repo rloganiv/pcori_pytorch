@@ -30,7 +30,6 @@ class MHDDatasetReader(DatasetReader):
 
         {'session_id': '...', 'utterances': ['...'], 'speakers': ['...'], 'labels': ['...']}
 
-
     The output of ``read`` is a list of ``Instance``s with the fields:
         TO BE DETERMINED
 

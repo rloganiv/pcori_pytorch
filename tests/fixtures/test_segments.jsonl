@@ -1,0 +1,2 @@
+{"session_id": "1337", "utterances": ["First utterance", "Second utterance", "Third utterance with a different label"], "labels": ["label0", "label1"], "durations": [2, 1], "speakers": ["speaker0", "speaker1", "speaker0"]}
+{"session_id": "420", "utterances": ["First utterance", "Second utterance"], "labels": ["label0"], "durations": [2], "speakers": ["speaker0", "speaker1"]}
