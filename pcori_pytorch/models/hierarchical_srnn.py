@@ -9,6 +9,7 @@ encoding step must be performed to obtain a single vector representation of each
 
 from typing import Dict, Optional, List, Any
 
+import logging
 from overrides import overrides
 
 import torch
@@ -128,6 +129,7 @@ class HierarchicalSRNN(Model):
         # (e.g. accounts for padding sequences of utterances), the third is a label mask (since in
         # the segmental model there is no longer a 1-to-1 correspondence between utterances and
         # labels).
+        logging.info('Computing masks')
         inner_mask = util.get_text_field_mask(utterances, 1)
         outer_mask = util.get_text_field_mask(utterances)
         outer_lengths = outer_mask.long().sum(-1).data
@@ -137,12 +139,14 @@ class HierarchicalSRNN(Model):
         batch_size, n_utterances, n_words = inner_mask.shape
 
         # Embed
+        logging.info('Embedding utterances')
         embedded_utterances = self.text_field_embedder(utterances)
         if self.dropout:
             embedded_utterances = self.dropout(embedded_utterances)
 
         # Get inner encodings
         # TODO: Replace with TimeDistributed
+        logging.info('Encoding')
         embedded_utterances = embedded_utterances.view(batch_size * n_utterances, n_words, -1)
         inner_mask = inner_mask.view(batch_size * n_utterances, n_words)
         inner_encoded = self.inner_encoder(embedded_utterances, inner_mask)
@@ -156,19 +160,22 @@ class HierarchicalSRNN(Model):
             outer_encoded = self.dropout(outer_encoded)
 
         # Get segment embeddings
+        logging.info('Computing segment embeddings')
         segment_embeddings = self.segment_embedder(outer_encoded, outer_mask.float())
 
         # Decode and compute partition function
         # TODO: Think of a better name for the outputs
-        labels_, segments_, log_z = self.compute_map_and_log_z(segment_embeddings, outer_lengths)
+        logging.info('Computing MAP')
+        durations_, labels_, log_z = self.compute_map_and_log_z(segment_embeddings, outer_lengths)
 
         output_dict = {
             'labels': labels_,
-            'segments': segments_
+            'durations': durations_
         }
 
         # Compute the unnormalized conditional probability of an observed sequence (if provided)
         if labels is not None:
+            logging.info('Computing loss')
             unnormalized_ll = Variable(torch.zeros(batch_size))
             if labels.is_cuda:
                 unnormalized_ll = unnormalized_ll.cuda()
@@ -188,7 +195,6 @@ class HierarchicalSRNN(Model):
 
         return output_dict
 
-    # TODO: Figure out the proper type hints.
     def compute_map_and_log_z(self,
                               segment_embeddings: torch.Tensor,
                               outer_lengths: torch.Tensor):
@@ -221,25 +227,41 @@ class HierarchicalSRNN(Model):
         # alpha[t+1] is for the t'th element in the input sequence (so the length of alpha is one
         # greater thant the number of inputs), all durations are positive, but confusingly a length
         # 1 segment corresponds to a segment embedding where s == t.
+        forward_pass_results = []
         for k in range(batch_size):
+            logging.info('On example %i', k)
 
             log_alphas = Variable(torch.zeros(outer_lengths[k] + 1))
             if segment_embeddings.is_cuda:
                 log_alphas = log_alphas.cuda()
 
+            instance_results = []
             for t in range(outer_lengths[k]):
-                l = max(0, t - self.max_length)
-                alpha_t = 0.0
+                logging.info('Computing alpha %i', t)
+
+                # Apply max length cutoff
+                if self.max_length is not None:
+                    l = max(0, t - self.max_length)
+                else:
+                    l = 0
+
+                # For computing MAP
+                best_score = None
+                best_duration = None
+                best_label = None
+
+                scores = []
+
                 for s in range(l, t + 1):
 
-                    alpha_s = log_alphas.exp()[s] # Dumb trick - shouldn't need to exp everything
+                    # alpha_s = log_alphas[s] # Dumb trick 
 
                     duration = Variable(torch.LongTensor([t - s + 1]))
                     if segment_embeddings.is_cuda:
                         duration = duration.cuda()
 
                     embedded_duration = self.duration_embedder(duration).view(1, -1)
-                    inner_sum = 0.0
+
                     for l in range(self.num_labels):
 
                         label = Variable(torch.LongTensor([l]))
@@ -251,12 +273,45 @@ class HierarchicalSRNN(Model):
                         weight = self.weight_function(embedded_label,
                                                       embedded_duration,
                                                       embedded_segment)
-                        inner_sum += torch.exp(weight)
-                    alpha_t += alpha_s * inner_sum
-                log_alphas[t + 1] = torch.log(alpha_t)
+                        score = log_alphas[s] + weight
+                        scores.append(score)
+                        score_ = score.data[0,0]
+                        if best_score is None:
+                            best_duration = t - s + 1
+                            best_label = l
+                            best_score = score_
+                        elif score_ > best_score:
+                            best_duration = t - s + 1
+                            best_label = l
+                            best_score = score_
+
+                # Log-sum trick
+                offset_scores = [s - best_score for s in scores]
+                sum_exp = sum(torch.exp(s) for s in offset_scores)
+                log_alpha_t = best_score + torch.log(sum_exp)
+                logging.info('Log alpha t is %0.4f', log_alpha_t.data)
+                log_alphas[t + 1] = log_alpha_t
+                instance_results.append((best_duration, best_label))
+            forward_pass_results.append(instance_results)
             log_z[k] = log_alphas[-1]
 
-        return None, None, log_z
+        # Trace back pointers
+        durations = []
+        labels = []
+        for instance_results in forward_pass_results:
+            instance_durations = []
+            instance_labels = []
+            idx = len(instance_results) - 1
+            while idx >= 0:
+                duration, label = instance_results[idx]
+                instance_durations.append(duration)
+                instance_labels.append(label)
+                idx -= duration
+            durations.reverse()
+            durations.append(instance_durations)
+            labels.reverse()
+            labels.append(instance_labels)
+        return durations, labels, log_z
 
     @classmethod
     def from_params(cls, vocab: Vocabulary, params: Params) -> 'HierarchicalCRF':

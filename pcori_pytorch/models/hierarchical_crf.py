@@ -11,10 +11,6 @@ encoding step must be performed to obtain a single vector representation of each
 
 from typing import Dict, Optional, List, Any
 
-from overrides import overrides
-import torch
-from torch.nn.modules.linear import Linear
-
 from allennlp.common import Params
 from allennlp.common.checks import check_dimensions_match
 from allennlp.common.util import pad_sequence_to_length
@@ -25,6 +21,9 @@ from allennlp.modules.conditional_random_field import allowed_transitions
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 import allennlp.nn.util as util
+from overrides import overrides
+import torch
+from torch.nn.modules.linear import Linear
 
 from pcori_pytorch.training import FuckingAccuracy
 

@@ -80,7 +80,9 @@ class SegmentEmbedder(torch.nn.Module):
         mask : ``torch.FloatTensor``, optional (default = ``None``)
             A torch tensor
         """
+        use_cuda = inputs.is_cuda
         batch_size, seq_length, _ = inputs.shape
+
         if self._max_length is None:
             max_length = seq_length
         else:
@@ -91,7 +93,7 @@ class SegmentEmbedder(torch.nn.Module):
         # ``forward[i,j,k,:]`` will hold the forward embedding for the segment spanning tokens j
         # though k for the i'th sequence in the batch
         forward = torch.zeros(batch_size, seq_length, seq_length, self._hidden_size)
-        forward = Variable(forward)
+        forward = Variable(forward).cuda() if use_cuda else Variable(forward)
         for i in range(seq_length):
             j = min(seq_length, i + max_length)
             row, _ = self._forward_lstm(inputs[:,i:j,:])
@@ -100,7 +102,7 @@ class SegmentEmbedder(torch.nn.Module):
         # ``backward[i,j,k,:]`` will hold the backward embedding for the segment spanning tokens j
         # though k for the i'th sequence in the batch
         backward = torch.zeros(batch_size, seq_length, seq_length, self._hidden_size)
-        backward = Variable(backward)
+        backward = Variable(backward).cuda() if use_cuda else Variable(backward)
         reversed_inputs = reverse(inputs) # Need to reverse to feed into backwards LSTM
         # The idea is to fill in the reverse matrix from the bottom up then transpose to get its
         # entries to line up with forward. (See picture in notebook).
