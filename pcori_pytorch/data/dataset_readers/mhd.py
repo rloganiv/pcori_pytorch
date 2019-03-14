@@ -28,7 +28,16 @@ class MHDDatasetReader(DatasetReader):
     Reads a JSON-lines file containing sessions from the MHD study. Each line is expected to have
     the following format:
 
-        {'session_id': '...', 'utterances': ['...'], 'speakers': ['...'], 'labels': ['...']}
+        {
+            'session_id': '...',
+            'utterances': [
+                ['Tokens', 'in', 'first', 'utterance', ...],
+                ...,
+                ['Tokens', 'in', 'last', 'utterance', ...]
+            ],
+            'speakers': ['...'],
+            'labels': ['...']
+        }
 
     The output of ``read`` is a list of ``Instance``s with the fields:
         TO BE DETERMINED
@@ -79,7 +88,7 @@ class MHDDatasetReader(DatasetReader):
         fields: Dict[str, Field] = {}
         # Since each session consists of a sequence of utterances, which themselves are sequences
         # of words, we need to use a ``ListField`` to properly handle the nested structure.
-        tokenized_utterances = [self._tokenizer.tokenize(utterance) for utterance in utterances]
+        tokenized_utterances = [[Token(word) for word in utterance] for utterance in utterances]
         sequence = ListField([TextField(x, self._token_indexers) for x in tokenized_utterances])
         fields['utterances'] = sequence
         # Speaker ids however are just a ``TextField`` since there is only one per utterance.
